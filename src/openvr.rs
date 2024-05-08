@@ -99,6 +99,7 @@ impl VRSystem {
     }
 }
 
+#[allow(dead_code)]
 pub struct VROverlay<'a>(*mut openvr_sys2::IVROverlay, &'a VRSystem);
 
 impl<'a> VROverlay<'a> {

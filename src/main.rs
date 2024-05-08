@@ -1,7 +1,6 @@
 #![feature(
     try_trait_v2,
     array_try_map,
-    array_methods,
     inline_const,
     maybe_uninit_slice,
     maybe_uninit_array_assume_init
@@ -397,7 +396,6 @@ fn main() -> Result<()> {
     let mut ui_state = events::State::new(cfg.open_delay);
     let mut debug_pressed = false;
     let mut maybe_current_frame: Option<FrameInfo> = None;
-    let mut frame_changed = false;
     let is_synchronized = vrsys.is_synchronized();
     loop {
         let next_frame = if ui_state.is_visible() {
@@ -458,7 +456,6 @@ fn main() -> Result<()> {
 
                 // Submit the texture
                 vrsys.submit_texture(elapsed, &pipeline.fov())?;
-                frame_changed = false;
             }
         } else {
             // If we don't have a frame, this means either the overlay is not visible, or
