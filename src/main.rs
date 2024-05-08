@@ -1,7 +1,6 @@
 #![feature(
     try_trait_v2,
     array_try_map,
-    inline_const,
     maybe_uninit_slice,
     maybe_uninit_array_assume_init
 )]

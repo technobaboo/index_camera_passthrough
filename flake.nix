@@ -5,7 +5,7 @@
   };
   inputs.rust-manifest = {
     flake = false;
-    url = "https://static.rust-lang.org/dist/2024-03-02/channel-rust-nightly.toml";
+    url = "https://static.rust-lang.org/dist/2024-05-08/channel-rust-nightly.toml";
   };
   description = "index_camera_passthrough";
 
