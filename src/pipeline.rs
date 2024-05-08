@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::utils::DeviceExt as _;
 use anyhow::Result;
+use smallvec::SmallVec;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
@@ -220,19 +221,23 @@ impl Pipeline {
             MemoryTypeFilter::HOST_SEQUENTIAL_WRITE | MemoryTypeFilter::PREFER_DEVICE,
         )?;
         device.set_debug_utils_object_name(&yuv_texture, Some("yuv_texture"))?;
-        let textures = [0, 1].try_map(|id| {
-            let tex = device.clone().new_image(
-                ImageCreateInfo {
-                    extent: [CAMERA_SIZE * 2, CAMERA_SIZE, 1],
-                    format: Format::R8G8B8A8_UNORM,
-                    usage: ImageUsage::SAMPLED | ImageUsage::COLOR_ATTACHMENT,
-                    ..Default::default()
-                },
-                MemoryTypeFilter::PREFER_DEVICE,
-            )?;
-            device.set_debug_utils_object_name(&tex, Some(&format!("texture{id}")))?;
-            anyhow::Ok(tex)
-        })?;
+        let textures = (0..2)
+            .map(|id| {
+                let tex = device.clone().new_image(
+                    ImageCreateInfo {
+                        extent: [CAMERA_SIZE * 2, CAMERA_SIZE, 1],
+                        format: Format::R8G8B8A8_UNORM,
+                        usage: ImageUsage::SAMPLED | ImageUsage::COLOR_ATTACHMENT,
+                        ..Default::default()
+                    },
+                    MemoryTypeFilter::PREFER_DEVICE,
+                )?;
+                device.set_debug_utils_object_name(&tex, Some(&format!("texture{id}")))?;
+                anyhow::Ok(tex)
+            })
+            .collect::<Result<SmallVec<[_; 2]>, _>>()?
+            .into_inner()
+            .unwrap();
         // if source is YUV: upload -> yuv_texture -> converter -> output_a
         // if source is RGB: upload -> output_a
         let converter = source_is_yuv

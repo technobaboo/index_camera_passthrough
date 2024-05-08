@@ -1,9 +1,3 @@
-#![feature(
-    try_trait_v2,
-    array_try_map,
-    maybe_uninit_slice,
-    maybe_uninit_array_assume_init
-)]
 #![deny(rust_2018_idioms)]
 mod config;
 mod distortion_correction;

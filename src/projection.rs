@@ -10,6 +10,7 @@
 //! HMD View: inverse of HMD pose
 //! Camera Project: estimated from camera calibration.
 use anyhow::Result;
+use smallvec::SmallVec;
 use std::sync::Arc;
 use vulkano::{
     buffer::{
@@ -75,7 +76,7 @@ pub struct ProjectionParameters {
 }
 
 struct Uniforms {
-    transforms: [Subbuffer<vs::Transform>; 2],
+    transforms: SmallVec<[Subbuffer<vs::Transform>; 2]>,
 }
 
 impl std::fmt::Debug for Uniforms {
@@ -96,7 +97,7 @@ pub struct Projection {
     saved_parameters: ProjectionParameters,
     mode_ipd_changed: bool,
     mvps_changed: bool,
-    desc_sets: [Arc<DescriptorSet>; 2],
+    desc_sets: SmallVec<[Arc<DescriptorSet>; 2]>,
 }
 use crate::config::ProjectionMode;
 #[derive(VertexTrait, Default, Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -262,7 +263,12 @@ impl Projection {
             camera_calib,
             ..
         } = &self.saved_parameters;
-        let mut transforms_write = self.uniforms.transforms.each_ref().try_map(|u| u.write())?;
+        let mut transforms_write: SmallVec<[_; 2]> = self
+            .uniforms
+            .transforms
+            .iter()
+            .map(|u| u.write())
+            .collect::<Result<_, _>>()?;
         if self.mode_ipd_changed {
             let left_extrinsics_position = camera_calib
                 .map(|c| c.left.extrinsics.position)
@@ -340,15 +346,16 @@ impl Projection {
             }
         )
         .unwrap();
-        let tex_offsets = [
-            fs::Info {
-                texOffset: [0.0, 0.0],
-            },
-            fs::Info {
-                texOffset: [0.5, 0.0],
-            },
-        ]
-        .try_map(|u| Self::make_uniform_buffer(allocator.clone(), u))?;
+        let tex_offsets = (0..2)
+            .map(|i| {
+                Self::make_uniform_buffer(
+                    allocator.clone(),
+                    fs::Info {
+                        texOffset: [0.5 * (i as f32), 0.0],
+                    },
+                )
+            })
+            .collect::<Result<SmallVec<[_; 2]>, _>>()?;
         let vs = vs.entry_point("main").unwrap();
         let fs = fs.entry_point("main").unwrap();
         let stages = [
@@ -360,12 +367,12 @@ impl Projection {
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
                 .into_pipeline_layout_create_info(device.clone())?,
         )?;
-        let transforms = [vs::Transform::default(); 2]
-            .try_map(|u| Self::make_uniform_buffer(allocator.clone(), u))?;
-        {
-            let mut transform_writes = [transforms[0].write()?, transforms[1].write()?];
-            transform_writes[0].overlayWidth = overlay_width.into();
-            transform_writes[1].overlayWidth = overlay_width.into();
+        let mut transforms: SmallVec<[_; 2]> = (0..2)
+            .map(|_| Self::make_uniform_buffer(allocator.clone(), vs::Transform::default()))
+            .collect::<Result<_, _>>()?;
+        for transform in &mut transforms {
+            let mut transform_write = transform.write()?;
+            transform_write.overlayWidth = overlay_width.into();
         }
         log::info!("before");
         let pipeline = GraphicsPipeline::new(
@@ -412,23 +419,28 @@ impl Projection {
                 ..Default::default()
             },
         )?;
-        let desc_sets = [0, 1].try_map(|i| {
-            DescriptorSet::new(
-                descriptor_set_allocator.clone(),
-                layout.clone(),
-                [
-                    WriteDescriptorSet::buffer(0, transforms[i].clone()),
-                    WriteDescriptorSet::image_view_sampler(
-                        1,
-                        ImageView::new(source.clone(), ImageViewCreateInfo::from_image(source))?,
-                        sampler.clone(),
-                    ),
-                    WriteDescriptorSet::buffer(2, tex_offsets[i].clone()),
-                ],
-                None,
-            )
-            .map_err(ProjectorError::from)
-        })?;
+        let desc_sets = (0..2)
+            .map(|i| {
+                DescriptorSet::new(
+                    descriptor_set_allocator.clone(),
+                    layout.clone(),
+                    [
+                        WriteDescriptorSet::buffer(0, transforms[i].clone()),
+                        WriteDescriptorSet::image_view_sampler(
+                            1,
+                            ImageView::new(
+                                source.clone(),
+                                ImageViewCreateInfo::from_image(source),
+                            )?,
+                            sampler.clone(),
+                        ),
+                        WriteDescriptorSet::buffer(2, tex_offsets[i].clone()),
+                    ],
+                    None,
+                )
+                .map_err(ProjectorError::from)
+            })
+            .collect::<Result<_, _>>()?;
         let source_extent = source.extent();
         Ok(Self {
             saved_parameters: init_params,

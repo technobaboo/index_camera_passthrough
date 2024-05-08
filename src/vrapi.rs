@@ -377,7 +377,7 @@ impl OpenVr {
                 .GetActionHandle(name.as_ptr(), button[3].as_mut_ptr())
                 .into_result()?;
         };
-        let button = unsafe { MaybeUninit::array_assume_init(button) };
+        let button = button.map(|b| unsafe { b.assume_init() });
 
         log::debug!("buttons: {:?}", button);
         let action_set = unsafe {

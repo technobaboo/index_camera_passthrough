@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::{info, trace};
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
@@ -221,41 +221,45 @@ impl StereoCorrection {
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
                 .into_pipeline_layout_create_info(device.clone())?,
         )?;
-        let pipelines = [0, 1].try_map(|id| {
-            GraphicsPipeline::new(
-                device.clone(),
-                None,
-                GraphicsPipelineCreateInfo {
-                    stages: stages[..].into(),
-                    vertex_input_state: Some(
-                        Vertex::per_vertex().definition(&vs.info().input_interface)?,
-                    ),
-                    input_assembly_state: Some(InputAssemblyState {
-                        topology: PrimitiveTopology::TriangleStrip,
-                        ..Default::default()
-                    }),
-                    viewport_state: Some(ViewportState {
-                        viewports: smallvec![Viewport {
-                            offset: [size as f32 * id as f32, 0.0],
-                            extent: [size as f32, size as f32],
-                            depth_range: 0.0..=1.0,
-                        }],
-                        ..Default::default()
-                    }),
-                    subpass: Some(PipelineSubpassType::BeginRenderPass(
-                        Subpass::from(render_passes[id].clone(), 0).unwrap(),
-                    )),
-                    rasterization_state: Some(RasterizationState::default()),
-                    multisample_state: Some(MultisampleState::default()),
-                    color_blend_state: Some(ColorBlendState::with_attachment_states(
-                        1,
-                        Default::default(),
-                    )),
-                    ..GraphicsPipelineCreateInfo::layout(layout.clone())
-                },
-            )
-            .map_err(anyhow::Error::from)
-        })?;
+        let pipelines = (0..2)
+            .map(|id| {
+                GraphicsPipeline::new(
+                    device.clone(),
+                    None,
+                    GraphicsPipelineCreateInfo {
+                        stages: stages[..].into(),
+                        vertex_input_state: Some(
+                            Vertex::per_vertex().definition(&vs.info().input_interface)?,
+                        ),
+                        input_assembly_state: Some(InputAssemblyState {
+                            topology: PrimitiveTopology::TriangleStrip,
+                            ..Default::default()
+                        }),
+                        viewport_state: Some(ViewportState {
+                            viewports: smallvec![Viewport {
+                                offset: [size as f32 * id as f32, 0.0],
+                                extent: [size as f32, size as f32],
+                                depth_range: 0.0..=1.0,
+                            }],
+                            ..Default::default()
+                        }),
+                        subpass: Some(PipelineSubpassType::BeginRenderPass(
+                            Subpass::from(render_passes[id].clone(), 0).unwrap(),
+                        )),
+                        rasterization_state: Some(RasterizationState::default()),
+                        multisample_state: Some(MultisampleState::default()),
+                        color_blend_state: Some(ColorBlendState::with_attachment_states(
+                            1,
+                            Default::default(),
+                        )),
+                        ..GraphicsPipelineCreateInfo::layout(layout.clone())
+                    },
+                )
+                .map_err(anyhow::Error::from)
+            })
+            .collect::<Result<SmallVec<[_; 2]>, _>>()?
+            .into_inner()
+            .unwrap();
         let sampler = Sampler::new(
             device.clone(),
             SamplerCreateInfo {
@@ -273,44 +277,49 @@ impl StereoCorrection {
             .each_ref()
             .map(|(_, coeff, center, focal)| Self::find_scale(coeff, center, focal));
         // Left pass
-        let desc_sets = coeffs.try_map(|(id, coeff, center, focal)| {
-            let uniform = fs::Parameters {
-                center: center.map(|x| x as f32),
-                dcoef: coeff.map(|x| x as f32),
-                focal: focal.map(|x| x as f32),
-                sensorSize: (size as f32).into(),
-                scale: [scale_fov[id][0].0, scale_fov[id][1].0],
-                texOffset: [0.5 * id as f32, 0.0],
-            };
-            let uniform = Buffer::from_data(
-                allocator.clone(),
-                BufferCreateInfo {
-                    usage: BufferUsage::UNIFORM_BUFFER,
-                    ..Default::default()
-                },
-                AllocationCreateInfo {
-                    memory_type_filter: MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
-                        | MemoryTypeFilter::PREFER_DEVICE,
-                    allocate_preference: MemoryAllocatePreference::Unknown,
-                    ..Default::default()
-                },
-                uniform,
-            )?;
-            let desc_set_layout = pipelines[id].layout().set_layouts().first().unwrap();
-            Ok::<_, anyhow::Error>(DescriptorSet::new(
-                descriptor_set_allocator.clone(),
-                desc_set_layout.clone(),
-                [
-                    WriteDescriptorSet::buffer(0, uniform),
-                    WriteDescriptorSet::image_view_sampler(
-                        1,
-                        ImageView::new(input.clone(), ImageViewCreateInfo::from_image(&input))?,
-                        sampler.clone(),
-                    ),
-                ],
-                None,
-            )?)
-        })?;
+        let desc_sets = coeffs
+            .into_iter()
+            .map(|(id, coeff, center, focal)| {
+                let uniform = fs::Parameters {
+                    center: center.map(|x| x as f32),
+                    dcoef: coeff.map(|x| x as f32),
+                    focal: focal.map(|x| x as f32),
+                    sensorSize: (size as f32).into(),
+                    scale: [scale_fov[id][0].0, scale_fov[id][1].0],
+                    texOffset: [0.5 * id as f32, 0.0],
+                };
+                let uniform = Buffer::from_data(
+                    allocator.clone(),
+                    BufferCreateInfo {
+                        usage: BufferUsage::UNIFORM_BUFFER,
+                        ..Default::default()
+                    },
+                    AllocationCreateInfo {
+                        memory_type_filter: MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
+                            | MemoryTypeFilter::PREFER_DEVICE,
+                        allocate_preference: MemoryAllocatePreference::Unknown,
+                        ..Default::default()
+                    },
+                    uniform,
+                )?;
+                let desc_set_layout = pipelines[id].layout().set_layouts().first().unwrap();
+                Ok::<_, anyhow::Error>(DescriptorSet::new(
+                    descriptor_set_allocator.clone(),
+                    desc_set_layout.clone(),
+                    [
+                        WriteDescriptorSet::buffer(0, uniform),
+                        WriteDescriptorSet::image_view_sampler(
+                            1,
+                            ImageView::new(input.clone(), ImageViewCreateInfo::from_image(&input))?,
+                            sampler.clone(),
+                        ),
+                    ],
+                    None,
+                )?)
+            })
+            .collect::<Result<SmallVec<[_; 2]>, _>>()?
+            .into_inner()
+            .unwrap();
 
         Ok(Self {
             device,
