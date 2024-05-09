@@ -10,7 +10,6 @@
 //! HMD View: inverse of HMD pose
 //! Camera Project: estimated from camera calibration.
 use anyhow::Result;
-use smallvec::SmallVec;
 use std::sync::Arc;
 use vulkano::{
     buffer::{
@@ -76,7 +75,7 @@ pub struct ProjectionParameters {
 }
 
 struct Uniforms {
-    transforms: SmallVec<[Subbuffer<vs::Transform>; 2]>,
+    transforms: [Subbuffer<vs::Transform>; 2],
 }
 
 impl std::fmt::Debug for Uniforms {
@@ -97,9 +96,9 @@ pub struct Projection {
     saved_parameters: ProjectionParameters,
     mode_ipd_changed: bool,
     mvps_changed: bool,
-    desc_sets: SmallVec<[Arc<DescriptorSet>; 2]>,
+    desc_sets: [Arc<DescriptorSet>; 2],
 }
-use crate::config::ProjectionMode;
+use crate::{config::ProjectionMode, utils::Array};
 #[derive(VertexTrait, Default, Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 struct Vertex {
@@ -263,12 +262,13 @@ impl Projection {
             camera_calib,
             ..
         } = &self.saved_parameters;
-        let mut transforms_write: SmallVec<[_; 2]> = self
+        let mut transforms_write = self
             .uniforms
             .transforms
             .iter()
             .map(|u| u.write())
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         if self.mode_ipd_changed {
             let left_extrinsics_position = camera_calib
                 .map(|c| c.left.extrinsics.position)
@@ -355,7 +355,8 @@ impl Projection {
                     },
                 )
             })
-            .collect::<Result<SmallVec<[_; 2]>, _>>()?;
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         let vs = vs.entry_point("main").unwrap();
         let fs = fs.entry_point("main").unwrap();
         let stages = [
@@ -367,9 +368,10 @@ impl Projection {
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
                 .into_pipeline_layout_create_info(device.clone())?,
         )?;
-        let mut transforms: SmallVec<[_; 2]> = (0..2)
+        let mut transforms = (0..2)
             .map(|_| Self::make_uniform_buffer(allocator.clone(), vs::Transform::default()))
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         for transform in &mut transforms {
             let mut transform_write = transform.write()?;
             transform_write.overlayWidth = overlay_width.into();
@@ -440,7 +442,8 @@ impl Projection {
                 )
                 .map_err(ProjectorError::from)
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         let source_extent = source.extent();
         Ok(Self {
             saved_parameters: init_params,

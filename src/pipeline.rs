@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use crate::utils::DeviceExt as _;
+use crate::utils::{Array, DeviceExt as _};
 use anyhow::Result;
-use smallvec::SmallVec;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
@@ -235,9 +234,8 @@ impl Pipeline {
                 device.set_debug_utils_object_name(&tex, Some(&format!("texture{id}")))?;
                 anyhow::Ok(tex)
             })
-            .collect::<Result<SmallVec<[_; 2]>, _>>()?
-            .into_inner()
-            .unwrap();
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         // if source is YUV: upload -> yuv_texture -> converter -> output_a
         // if source is RGB: upload -> output_a
         let converter = source_is_yuv

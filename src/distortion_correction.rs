@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use log::{info, trace};
-use smallvec::{smallvec, SmallVec};
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
@@ -38,6 +37,8 @@ use vulkano::{
     sync::GpuFuture,
     Handle, VulkanObject,
 };
+
+use crate::utils::Array;
 
 #[derive(VertexTrait, Default, Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 #[allow(non_snake_case)]
@@ -236,7 +237,7 @@ impl StereoCorrection {
                             ..Default::default()
                         }),
                         viewport_state: Some(ViewportState {
-                            viewports: smallvec![Viewport {
+                            viewports: smallvec::smallvec![Viewport {
                                 offset: [size as f32 * id as f32, 0.0],
                                 extent: [size as f32, size as f32],
                                 depth_range: 0.0..=1.0,
@@ -257,9 +258,8 @@ impl StereoCorrection {
                 )
                 .map_err(anyhow::Error::from)
             })
-            .collect::<Result<SmallVec<[_; 2]>, _>>()?
-            .into_inner()
-            .unwrap();
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
         let sampler = Sampler::new(
             device.clone(),
             SamplerCreateInfo {
@@ -317,9 +317,8 @@ impl StereoCorrection {
                     None,
                 )?)
             })
-            .collect::<Result<SmallVec<[_; 2]>, _>>()?
-            .into_inner()
-            .unwrap();
+            .collect::<Result<Array<_, 2>, _>>()?
+            .into_inner();
 
         Ok(Self {
             device,

@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use smallvec::smallvec;
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
@@ -141,7 +140,7 @@ impl GpuYuyvConverter {
                     ..Default::default()
                 }),
                 viewport_state: Some(ViewportState {
-                    viewports: smallvec![Viewport {
+                    viewports: smallvec::smallvec![Viewport {
                         offset: [0.0, 0.0],
                         extent: [w as f32, h as f32],
                         depth_range: 0.0..=1.0,
