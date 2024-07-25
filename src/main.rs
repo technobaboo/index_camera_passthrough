@@ -2,6 +2,7 @@
 mod config;
 mod distortion_correction;
 mod events;
+#[cfg(feature = "openvr")]
 mod openvr;
 mod pipeline;
 mod projection;
@@ -29,6 +30,7 @@ use log::info;
 
 use crate::{config::Backend, vrapi::VrExt};
 
+#[cfg(feature = "openvr")]
 static APP_KEY: &str = "index_camera_passthrough_rs\0";
 static APP_NAME: &str = "Camera\0";
 static APP_VERSION: u32 = 0;
@@ -336,6 +338,7 @@ fn main() -> Result<()> {
 
     log::info!("{:?}", cfg.backend);
     let mut vrsys = match cfg.backend {
+        #[cfg(feature = "openvr")]
         Backend::OpenVR => crate::vrapi::OpenVr::new(&xdg)?.boxed(),
         Backend::OpenXR => crate::vrapi::OpenXr::new(cfg.z_order)?.boxed(),
     };

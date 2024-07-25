@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use nalgebra::{Affine3, Matrix3, Matrix4, Translation3, UnitQuaternion, Vector3};
+#[cfg(feature = "openvr")]
 use openvr_sys2::{ETrackedPropertyError, EVRInitError, EVRInputError, EVROverlayError};
 use openxr::{
     ApplicationInfo, EnvironmentBlendMode, EventDataBuffer, Extent2Df, Extent2Di, EyeVisibility,
@@ -33,11 +34,14 @@ use vulkano::{
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "openvr")]
+use crate::APP_KEY;
 use crate::{
     config::{DisplayMode, Eye, PositionMode},
     utils::DeviceExt,
-    APP_KEY, APP_NAME, CAMERA_SIZE,
+    APP_NAME, CAMERA_SIZE,
 };
+
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 pub struct Extrinsics {
     /// Offset of the camera from Hmd
@@ -84,6 +88,7 @@ pub struct StereoCamera {
     pub left: TrackedCamera,
     pub right: TrackedCamera,
 }
+#[cfg(feature = "openvr")]
 pub struct Bounds {
     pub umin: f32,
     pub vmin: f32,
@@ -239,6 +244,7 @@ where
     }
 }
 
+#[cfg(feature = "openvr")]
 struct TextureState {
     _image: Arc<vulkano::image::Image>,
     _device: Arc<Device>,
@@ -246,6 +252,7 @@ struct TextureState {
     _instance: Arc<Instance>,
 }
 
+#[cfg(feature = "openvr")]
 pub(crate) struct OpenVr {
     sys: crate::openvr::VRSystem,
     handle: openvr_sys2::VROverlayHandle_t,
@@ -269,6 +276,7 @@ pub(crate) struct OpenVr {
     texture_in_use: u64,
     ipd: Option<f32>,
 }
+#[cfg(feature = "openvr")]
 impl OpenVr {
     fn create_vk_device(
         sys: &crate::openvr::VRSystem,
@@ -497,6 +505,7 @@ impl OpenVr {
     }
 }
 
+#[cfg(feature = "openvr")]
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum OpenVrError {
     #[error("vulkan device not found")]
@@ -527,6 +536,7 @@ pub(crate) enum OpenVrError {
     Projector(#[from] crate::projection::ProjectorError),
 }
 
+#[cfg(feature = "openvr")]
 impl Drop for OpenVr {
     fn drop(&mut self) {
         log::info!("Dropping overlay handle");
@@ -542,6 +552,7 @@ fn get_vulkan_library() -> &'static Arc<vulkano::VulkanLibrary> {
     VULKAN_LIBRARY.get_or_init(|| vulkano::VulkanLibrary::new().unwrap())
 }
 
+#[cfg(feature = "openvr")]
 impl VkContext for OpenVr {
     fn vk_device(&self, _instance: &Arc<Instance>) -> (Arc<Device>, Arc<Queue>) {
         (self.device.clone(), self.queue.clone())
@@ -562,6 +573,7 @@ impl VkContext for OpenVr {
     }
 }
 
+#[cfg(feature = "openvr")]
 fn transition_layout(
     input_layout: ImageLayout,
     image: &Arc<vulkano::image::Image>,
@@ -621,6 +633,7 @@ fn transition_layout(
     Ok(fence)
 }
 
+#[cfg(feature = "openvr")]
 impl Vr for OpenVr {
     type Error = OpenVrError;
     fn load_camera_paramter(&mut self) -> Option<StereoCamera> {
