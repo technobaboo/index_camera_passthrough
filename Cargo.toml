@@ -11,6 +11,7 @@ rust-version = "1.78"
 [features]
 default = []
 openvr = ["dep:openvr-sys2"]
+openxr = ["dep:openxr"]
 
 [dependencies]
 anyhow = { version = "1.0.45", features = ["backtrace"] }
@@ -38,7 +39,7 @@ humantime-serde = "1.0.1"
 bytemuck = { version = "^1.7", features = ["derive"] }
 libloading = "0.8.0"
 cstr = "0.2.11"
-openxr = "0.17.1"
+openxr = { version = "0.17.1", optional = true }
 smallvec = "1.11.2"
 
 [build-dependencies]

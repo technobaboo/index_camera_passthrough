@@ -340,6 +340,7 @@ fn main() -> Result<()> {
     let mut vrsys = match cfg.backend {
         #[cfg(feature = "openvr")]
         Backend::OpenVR => crate::vrapi::OpenVr::new(&xdg)?.boxed(),
+        #[cfg(feature = "openxr")]
         Backend::OpenXR => crate::vrapi::OpenXr::new(cfg.z_order)?.boxed(),
     };
     let instance = vrsys.vk_instance();

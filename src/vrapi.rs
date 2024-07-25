@@ -2,6 +2,7 @@ use itertools::Itertools;
 use nalgebra::{Affine3, Matrix3, Matrix4, Translation3, UnitQuaternion, Vector3};
 #[cfg(feature = "openvr")]
 use openvr_sys2::{ETrackedPropertyError, EVRInitError, EVRInputError, EVROverlayError};
+#[cfg(feature = "openxr")]
 use openxr::{
     ApplicationInfo, EnvironmentBlendMode, EventDataBuffer, Extent2Df, Extent2Di, EyeVisibility,
     Offset2Di, OverlaySessionCreateFlagsEXTX, Rect2Di, ReferenceSpaceType, SwapchainSubImage,
@@ -935,6 +936,7 @@ impl Vr for OpenVr {
     }
 }
 
+#[cfg(feature = "openxr")]
 pub(crate) struct OpenXr {
     instance: openxr::Instance,
     overlay_visible: bool,
@@ -969,6 +971,7 @@ pub(crate) struct OpenXr {
     projector: Option<crate::projection::Projection>,
     render_texture: Option<Arc<Image>>,
 }
+#[cfg(feature = "openxr")]
 fn affine_to_posef(t: Affine3<f32>) -> openxr::Posef {
     let m = t.to_homogeneous();
     let r: Matrix3<f32> = m.fixed_columns::<3>(0).fixed_rows::<3>(0).into();
@@ -992,6 +995,7 @@ fn affine_to_posef(t: Affine3<f32>) -> openxr::Posef {
     }
 }
 
+#[cfg(feature = "openxr")]
 fn posef_to_nalgebra(posef: openxr::Posef) -> (UnitQuaternion<f32>, nalgebra::Vector3<f32>) {
     let quaternion = UnitQuaternion::new_normalize(nalgebra::Quaternion::new(
         posef.orientation.w,
@@ -1004,6 +1008,7 @@ fn posef_to_nalgebra(posef: openxr::Posef) -> (UnitQuaternion<f32>, nalgebra::Ve
     (quaternion, translation)
 }
 
+#[cfg(feature = "openxr")]
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum OpenXrError {
     #[error("cannot load openxr loader: {0}")]
@@ -1034,6 +1039,7 @@ pub(crate) enum OpenXrError {
     NoSupportedBlendMode,
 }
 
+#[cfg(feature = "openxr")]
 impl OpenXr {
     fn create_vk_device(
         xr_instance: &openxr::Instance,
@@ -1423,6 +1429,7 @@ impl OpenXr {
     }
 }
 
+#[cfg(feature = "openxr")]
 unsafe extern "system" fn get_instance_proc_addr(
     instance: openxr::sys::platform::VkInstance,
     name: *const std::ffi::c_char,
@@ -1432,6 +1439,7 @@ unsafe extern "system" fn get_instance_proc_addr(
     library.get_instance_proc_addr(instance, name)
 }
 
+#[cfg(feature = "openxr")]
 impl VkContext for OpenXr {
     fn vk_device(&self, _instance: &Arc<Instance>) -> (Arc<Device>, Arc<Queue>) {
         (self.device.clone(), self.queue.clone())
@@ -1450,6 +1458,7 @@ impl VkContext for OpenXr {
     }
 }
 
+#[cfg(feature = "openxr")]
 impl Vr for OpenXr {
     fn acknowledge_quit(&mut self) {
         // intentionally left blank

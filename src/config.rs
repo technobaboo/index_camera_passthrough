@@ -177,6 +177,7 @@ pub enum Backend {
     #[cfg(feature = "openvr")]
     #[serde(alias = "steamvr", alias = "openvr")]
     OpenVR,
+    #[cfg(feature = "openxr")]
     #[serde(alias = "openxr")]
     OpenXR,
 }
@@ -186,6 +187,7 @@ impl Default for Backend {
         {
             Self::OpenVR
         }
+        #[cfg(feature = "openxr")]
         #[cfg(not(feature = "openvr"))]
         {
             Self::OpenXR
@@ -277,6 +279,7 @@ impl Default for Config {
             camera_device: "".to_owned(),
             #[cfg(feature = "openvr")]
             backend: Backend::OpenVR,
+            #[cfg(feature = "openxr")]
             #[cfg(not(feature = "openvr"))]
             backend: Backend::OpenXR,
             overlay: Default::default(),
