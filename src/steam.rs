@@ -12,7 +12,9 @@ use anyhow::{anyhow, Context, Result};
 pub fn find_steam_config() -> Option<StereoCamera> {
     let xdg = xdg::BaseDirectories::new().ok()?;
     log::debug!("Base directories: {:?}", xdg);
-    let steam = xdg.find_data_file("steam")?;
+    let steam = xdg
+        .find_data_file("steam")
+        .or_else(|| xdg.find_data_file("Steam"))?;
     log::debug!("Steam directory: {:?}", steam);
     let steam_config = steam.join("config").join("lighthouse");
     log::debug!("Enumerating steam config dir {:?}", steam_config);
