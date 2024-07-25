@@ -277,11 +277,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             camera_device: "".to_owned(),
-            #[cfg(feature = "openvr")]
-            backend: Backend::OpenVR,
-            #[cfg(feature = "openxr")]
-            #[cfg(not(feature = "openvr"))]
-            backend: Backend::OpenXR,
+            backend: Default::default(),
             overlay: Default::default(),
             display_mode: Default::default(),
             toggle_button: default_toggle_button(),

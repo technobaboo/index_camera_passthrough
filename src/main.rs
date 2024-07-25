@@ -1,4 +1,5 @@
 #![deny(rust_2018_idioms)]
+#![cfg_attr(not(any(feature = "openvr", feature = "openxr")), allow(warnings, unused))]
 mod config;
 mod distortion_correction;
 mod events;
@@ -10,6 +11,9 @@ mod steam;
 mod utils;
 mod vrapi;
 mod yuv;
+
+#[cfg(not(any(feature = "openvr", feature = "openxr")))]
+compile_error!("At least one of \"openvr\" or \"openxr\" features must be enabled");
 
 use std::sync::{Arc, Mutex};
 
