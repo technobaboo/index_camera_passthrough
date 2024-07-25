@@ -1,5 +1,8 @@
+#[cfg(feature = "openxr")]
 use itertools::Itertools;
-use nalgebra::{Affine3, Matrix3, Matrix4, Translation3, UnitQuaternion, Vector3};
+use nalgebra::Matrix4;
+#[cfg(feature = "openxr")]
+use nalgebra::{Affine3, Matrix3, Translation3, UnitQuaternion, Vector3};
 #[cfg(feature = "openvr")]
 use openvr_sys2::{ETrackedPropertyError, EVRInitError, EVRInputError, EVROverlayError};
 #[cfg(feature = "openxr")]
@@ -25,22 +28,30 @@ use vulkano::{
         DescriptorSetAllocator, StandardDescriptorSetAllocator,
         StandardDescriptorSetAllocatorCreateInfo,
     },
-    device::{physical::PhysicalDevice, Device, Queue, QueueCreateInfo, QueueFlags},
-    image::{Image, ImageAspects, ImageCreateInfo, ImageLayout, ImageSubresourceRange, ImageUsage},
+    device::{physical::PhysicalDevice, Device, Queue, QueueFlags},
+    image::{Image, ImageAspects, ImageLayout, ImageSubresourceRange},
     instance::Instance,
     memory::allocator::{MemoryAllocator, StandardMemoryAllocator},
     sync::{AccessFlags, DependencyInfo, GpuFuture, ImageMemoryBarrier, PipelineStages},
     Handle, VulkanObject,
 };
 
+#[cfg(feature = "openxr")]
+use vulkano::{
+    device::QueueCreateInfo,
+    image::{ImageCreateInfo, ImageUsage},
+};
+
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "openvr")]
 use crate::APP_KEY;
+#[cfg(feature = "openxr")]
+use crate::CAMERA_SIZE;
 use crate::{
     config::{DisplayMode, Eye, PositionMode},
     utils::DeviceExt,
-    APP_NAME, CAMERA_SIZE,
+    APP_NAME,
 };
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]

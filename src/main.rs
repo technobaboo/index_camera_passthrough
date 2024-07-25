@@ -1,5 +1,8 @@
 #![deny(rust_2018_idioms)]
-#![cfg_attr(not(any(feature = "openvr", feature = "openxr")), allow(warnings, unused))]
+#![cfg_attr(
+    not(any(feature = "openvr", feature = "openxr")),
+    allow(warnings, unused)
+)]
 mod config;
 mod distortion_correction;
 mod events;
@@ -37,6 +40,7 @@ use crate::{config::Backend, vrapi::VrExt};
 #[cfg(feature = "openvr")]
 static APP_KEY: &str = "index_camera_passthrough_rs\0";
 static APP_NAME: &str = "Camera\0";
+#[cfg(feature = "openxr")]
 static APP_VERSION: u32 = 0;
 
 fn find_index_camera() -> Result<std::path::PathBuf> {
