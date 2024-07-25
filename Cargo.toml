@@ -1,12 +1,17 @@
 [package]
 name = "index_camera_passthrough"
 description = "Camera passthrough for Valve Index on Linux"
-authors = [ "Yuxuan Shui <yshuiv7@gmail.com>" ]
+authors = ["Yuxuan Shui <yshuiv7@gmail.com>"]
 repository = "https://github.com/yshui/index_camera_passthrough"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 rust-version = "1.78"
+
+[features]
+default = []
+openvr = ["dep:openvr-sys2"]
+openxr = ["dep:openxr"]
 
 [dependencies]
 anyhow = { version = "1.0.45", features = ["backtrace"] }
@@ -14,7 +19,7 @@ ash = "0.37.0"
 vulkano = { git = "https://github.com/vulkano-rs/vulkano" }
 vulkano-shaders = { git = "https://github.com/vulkano-rs/vulkano" }
 image = "0.25.1"
-openvr-sys2 = "0.1.3"
+openvr-sys2 = { version = "0.1.3", optional = true }
 ctrlc = "3.2.1"
 log = "0.4.14"
 env_logger = "0.11.3"
@@ -34,7 +39,7 @@ humantime-serde = "1.0.1"
 bytemuck = { version = "^1.7", features = ["derive"] }
 libloading = "0.8.0"
 cstr = "0.2.11"
-openxr = "0.17.1"
+openxr = { version = "0.17.1", optional = true }
 smallvec = "1.11.2"
 
 [build-dependencies]

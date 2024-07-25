@@ -172,15 +172,30 @@ pub enum Button {
     B,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Backend {
-    #[default]
+    #[cfg(feature = "openvr")]
     #[serde(alias = "steamvr", alias = "openvr")]
     OpenVR,
+    #[cfg(feature = "openxr")]
     #[serde(alias = "openxr")]
     OpenXR,
 }
+impl Default for Backend {
+    fn default() -> Self {
+        #[cfg(feature = "openvr")]
+        {
+            Self::OpenVR
+        }
+        #[cfg(feature = "openxr")]
+        #[cfg(not(feature = "openvr"))]
+        {
+            Self::OpenXR
+        }
+    }
+}
 
+#[cfg(feature = "openvr")]
 impl From<Button> for openvr_sys2::EVRButtonId {
     fn from(b: Button) -> Self {
         use openvr_sys2::EVRButtonId;
@@ -194,12 +209,14 @@ impl From<Button> for openvr_sys2::EVRButtonId {
     }
 }
 
+#[cfg(feature = "openvr")]
 impl PartialEq<openvr_sys2::EVRButtonId> for Button {
     fn eq(&self, other: &openvr_sys2::EVRButtonId) -> bool {
         &openvr_sys2::EVRButtonId::from(*self) == other
     }
 }
 
+#[cfg(feature = "openvr")]
 impl From<openvr_sys2::EVRButtonId> for Button {
     fn from(value: openvr_sys2::EVRButtonId) -> Self {
         use openvr_sys2::EVRButtonId;
@@ -260,7 +277,11 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             camera_device: "".to_owned(),
+            #[cfg(feature = "openvr")]
             backend: Backend::OpenVR,
+            #[cfg(feature = "openxr")]
+            #[cfg(not(feature = "openvr"))]
+            backend: Backend::OpenXR,
             overlay: Default::default(),
             display_mode: Default::default(),
             toggle_button: default_toggle_button(),
