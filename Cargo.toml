@@ -9,7 +9,7 @@ license = "MIT"
 rust-version = "1.78"
 
 [features]
-default = []
+default = ["openxr"]
 openvr = ["dep:openvr-sys2"]
 openxr = ["dep:openxr"]
 
